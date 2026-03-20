@@ -66,29 +66,54 @@ Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío
 `;
 
 export const analyzeProspectsWithAI = async (text) => {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-  if (!apiKey) throw new Error("API Key de Groq no encontrada en .env");
+  const groqKey = import.meta.env.VITE_GROQ_API_KEY;
+  const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
 
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: `Extrae la información de prospectos del siguiente reporte:\n\n${text}` }
-      ],
-      temperature: 0.1, // Low to ensure reliable JSON
-      response_format: { type: "json_object" }
-    })
-  });
+  if (!groqKey && !openRouterKey) throw new Error("No se encontraron API Keys en .env");
 
-  if (!response.ok) {
-    console.error('API Error:', await response.text());
-    throw new Error("Fallo en la conexión con la IA de extracción");
+  const makeRequest = async (url, key, model) => {
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/json",
+        ...(url.includes('openrouter') && {
+           "HTTP-Referer": window.location.href, // Recommended by OpenRouter
+           "X-Title": "VoxAI Dashboard"
+        })
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: `Extrae la información de prospectos del siguiente reporte:\n\n${text}` }
+        ],
+        temperature: 0.1,
+        response_format: { type: "json_object" }
+      })
+    });
+  };
+
+  let response = null;
+  
+  if (groqKey) {
+    response = await makeRequest("https://api.groq.com/openai/v1/chat/completions", groqKey, "llama-3.3-70b-versatile");
+    
+    // Si Groq nos da 429 (Rate Limit), y tenemos llave de OpenRouter, hacemos fallback
+    if (response.status === 429 && openRouterKey) {
+       console.warn("Groq Rate Limit alcanzado (429), usando respaldo de OpenRouter...");
+       response = await makeRequest("https://openrouter.ai/api/v1/chat/completions", openRouterKey, "meta-llama/llama-3.3-70b-instruct");
+    } else if (response.status === 429) {
+       throw new Error("Límite de Tokens (429) de Groq alcanzado. Debes esperar o agregar OpenRouter.");
+    }
+  } else if (openRouterKey) {
+    response = await makeRequest("https://openrouter.ai/api/v1/chat/completions", openRouterKey, "meta-llama/llama-3.3-70b-instruct");
+  }
+
+  if (!response || !response.ok) {
+    const errorText = await (response?.text?.() || Promise.resolve("No response"));
+    console.error('API Error:', errorText);
+    throw new Error(`Fallo en la conexión con la IA (${response?.status || 'Desconocido'})`);
   }
 
   const data = await response.json();
