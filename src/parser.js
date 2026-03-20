@@ -4,9 +4,10 @@ import * as pdfjsLib from 'pdfjs-dist';
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 export const extractTextFromPdf = async (file) => {
+  let pdf = null;
   try {
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     
     let fullText = '';
     
@@ -22,6 +23,10 @@ export const extractTextFromPdf = async (file) => {
   } catch (error) {
     console.error('Error extracting PDF text:', error);
     throw new Error('No se pudo leer el archivo PDF');
+  } finally {
+    if (pdf) {
+      await pdf.destroy();
+    }
   }
 };
 

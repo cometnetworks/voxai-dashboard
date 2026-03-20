@@ -508,6 +508,7 @@ function ReportsView({ setProspects, reportsHistory, setReportsHistory, showNoti
   const handleFileChange = async (e) => {
     if (e.target.files?.[0]) {
       await processFile(e.target.files[0]);
+      e.target.value = '';
     }
   };
 
