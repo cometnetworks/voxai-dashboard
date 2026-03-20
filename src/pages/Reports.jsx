@@ -3,7 +3,7 @@ import { Clock, FileText, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { extractTextFromPdf, analyzeProspectsWithAI } from '../parser';
 
-export default function Reports({ setProspects, reportsHistory, setReportsHistory }) {
+export default function Reports({ prospects, setProspects, reportsHistory, setReportsHistory }) {
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
@@ -25,11 +25,66 @@ export default function Reports({ setProspects, reportsHistory, setReportsHistor
       const newValidProspects = Array.isArray(newProspects) ? newProspects : [newProspects];
       if (newValidProspects.length === 0) throw new Error("No properties validos encontrados");
 
-      setProspects(prev => [...newValidProspects, ...prev]);
-      setReportsHistory([{ id: Date.now(), name: file.name, date: new Date().toISOString(), count: newValidProspects.length }, ...reportsHistory]);
+      let addedCount = 0;
+      let updatedCount = 0;
+      let updatedProspects = [...prospects];
+
+      newValidProspects.forEach(newP => {
+        const companyName = (newP.company || '').trim().toLowerCase();
+        
+        // If there's no company name, just add it as a new prospect with a unique ID
+        if (!companyName) {
+          const uniqueId = `p_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          updatedProspects.unshift({ ...newP, id: uniqueId });
+          addedCount++;
+          return;
+        }
+
+        const existingIndex = updatedProspects.findIndex(
+          p => (p.company || '').trim().toLowerCase() === companyName
+        );
+
+        if (existingIndex >= 0) {
+          // Merge with existing
+          const existing = updatedProspects[existingIndex];
+          const merged = { ...existing };
+          let hasChanges = false;
+          
+          Object.keys(newP).forEach(key => {
+            if (key === 'id') return; // Do not override the unique ID
+            
+            const currentVal = merged[key];
+            const newVal = newP[key];
+            
+            const isCurrentEmpty = currentVal === null || currentVal === undefined || currentVal.toString().trim() === '';
+            const isNewValid = newVal !== null && newVal !== undefined && newVal.toString().trim() !== '';
+
+            if (isCurrentEmpty && isNewValid) {
+              merged[key] = newVal;
+              hasChanges = true;
+            }
+          });
+
+          if (hasChanges) {
+             updatedProspects.splice(existingIndex, 1);
+             updatedProspects.unshift(merged); // Move to top of the list
+             updatedCount++;
+          }
+        } else {
+          // Add as new
+          const uniqueId = `p_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          updatedProspects.unshift({ ...newP, id: uniqueId });
+          addedCount++;
+        }
+      });
+
+      setProspects(updatedProspects);
+      
+      const summaryMsg = `Nuevos: ${addedCount}. Actualizados: ${updatedCount}.`;
+      setReportsHistory([{ id: Date.now(), name: file.name, date: new Date().toISOString(), count: `${addedCount} nvos / ${updatedCount} act` }, ...reportsHistory]);
       
       setProgress(100);
-      toast.success(`Reporte procesado: ${newValidProspects.length} prospecto(s) extraído(s).`, { id: toastId });
+      toast.success(`Reporte procesado. ${summaryMsg}`, { id: toastId });
     } catch (err) {
       console.error(err);
       toast.error(err.message || 'Error al procesar el PDF', { id: toastId });

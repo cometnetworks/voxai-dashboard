@@ -39,7 +39,7 @@ export default function App() {
       case 'prospectos': return <Prospects prospects={prospects} setProspects={setProspects} navigateTo={navigateTo} />;
       case 'oportunidades': return <Opportunities prospects={prospects} navigateTo={navigateTo} />;
       case 'detalle': return <Detail prospect={selectedProspect} navigateTo={navigateTo} />;
-      case 'reportes': return <Reports setProspects={setProspects} reportsHistory={reportsHistory} setReportsHistory={setReportsHistory} />;
+      case 'reportes': return <Reports prospects={prospects} setProspects={setProspects} reportsHistory={reportsHistory} setReportsHistory={setReportsHistory} />;
       case 'reuniones': return <Meetings prospects={prospects} meetings={meetings} setMeetings={setMeetings} />;
       default: return <Dashboard prospects={prospects} navigateTo={navigateTo} />;
     }
