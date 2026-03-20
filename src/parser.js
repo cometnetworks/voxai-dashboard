@@ -31,11 +31,20 @@ export const extractTextFromPdf = async (file) => {
 };
 
 const SYSTEM_PROMPT = `Eres un asistente experto en extracción de datos de ventas B2B. Tu objetivo es leer reportes en texto extraído de PDFs generados por IA, e identificar TODOS los prospectos que cumplan con la estructura requerida. 
-Devuelve EXCLUSIVAMENTE un bloque de JSON válido, que sea un arreglo de objetos. No incluyas explicaciones, saludos ni formato Markdown adicional (como \`\`\`json). SOLO la respuesta JSON pura.
+Devuelve EXCLUSIVAMENTE un objeto JSON válido. El JSON debe contener una única clave raíz llamada "prospectos" que sea un arreglo de los prospectos encontrados. No incluyas explicaciones, saludos ni formato Markdown adicional (como \`\`\`json). SOLO la respuesta JSON pura.
 
-Cada prospecto debe tener esta estructura exacta:
+Ejemplo de salida esperada:
 {
-  "id": "Texto único (e.g., p1, p2, o timestamp)",
+  "prospectos": [
+    {
+      "company": "Empresa X",
+      ...
+    }
+  ]
+}
+
+Cada prospecto dentro del arreglo "prospectos" debe tener esta estructura exacta:
+{
   "company": "Nombre de la empresa",
   "industry": "Industria a la que pertenece",
   "score": Número entero entre 0 y 100,
@@ -53,7 +62,7 @@ Cada prospecto debe tener esta estructura exacta:
   "draftEmail": "Cuerpo del correo sugerido"
 }
 
-Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío/nulo si no tiene sentido inventarlo. Para arrays como painPoints, extrae o deduce hasta 3 dolores principales. Para score y priority, genéralo basándote en que tan buen prospecto parece.
+Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío/nulo. Para arrays como painPoints, extrae o deduce hasta 3 dolores principales. Para score y priority, genéralo basándote en qué tan buen prospecto parece.
 `;
 
 export const analyzeProspectsWithAI = async (text) => {

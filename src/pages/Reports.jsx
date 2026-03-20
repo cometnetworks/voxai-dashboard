@@ -23,13 +23,14 @@ export default function Reports({ prospects, setProspects, reportsHistory, setRe
       setProgress(90);
       
       const newValidProspects = Array.isArray(newProspects) ? newProspects : [newProspects];
-      if (newValidProspects.length === 0) throw new Error("No properties validos encontrados");
+      const filteredProspects = newValidProspects.filter(p => p !== null && typeof p === 'object');
+      if (filteredProspects.length === 0) throw new Error("No se encontraron prospectos válidos en la respuesta de la IA.");
 
       let addedCount = 0;
       let updatedCount = 0;
       let updatedProspects = [...prospects];
 
-      newValidProspects.forEach(newP => {
+      filteredProspects.forEach(newP => {
         const companyName = (newP.company || '').trim().toLowerCase();
         
         // If there's no company name, just add it as a new prospect with a unique ID
