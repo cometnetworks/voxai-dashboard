@@ -40,7 +40,7 @@ export default function Dashboard({ prospects, navigateTo }) {
           <h3 className="text-lg font-semibold dark:text-white text-slate-800 mb-6">Distribución por Status</h3>
           {chartData.length > 0 ? (
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={400} minHeight={200}>
                 <PieChart>
                   <Pie
                     data={chartData}
