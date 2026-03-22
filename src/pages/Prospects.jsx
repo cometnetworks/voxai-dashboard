@@ -28,10 +28,6 @@ export default function Prospects({ prospects, setProspects, navigateTo }) {
 
   const filtered = prospects.filter(p => (p.company||'').toLowerCase().includes(searchTerm.toLowerCase()) || (p.industry||'').toLowerCase().includes(searchTerm.toLowerCase()));
   
-  const updateField = (id, field, value) => {
-    setProspects(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
-  };
-
   const handleDelete = (id) => {
     if (window.confirm('¿Estás seguro de eliminar este prospecto?')) {
       setProspects(prev => prev.filter(p => p.id !== id));
