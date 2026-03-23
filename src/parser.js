@@ -53,7 +53,10 @@ Cada prospecto dentro del arreglo "prospectos" debe tener esta estructura exacta
   "decisionMaker": "Nombre del decisor principal",
   "role": "Cargo del decisor",
   "email": "Correo electrónico del decisor",
-  "linkedinSearch": "Términos de búsqueda en LinkedIn para el decisor",
+  "phone": "Teléfono del decisor o de la empresa (si está disponible)",
+  "linkedin": "URL completa del perfil LinkedIn del decisor (si está disponible)",
+  "companyLinkedin": "URL completa del perfil LinkedIn de la empresa (si está disponible)",
+  "profileImage": "URL de la foto del decisor desde LinkedIn u otra fuente (si está disponible)",
   "trigger": "Motivo/Evento que dispara la necesidad o contacto",
   "painPoints": ["Array de strings con los puntos de dolor detectados"],
   "techStack": "Tecnologías que usan",
@@ -62,7 +65,7 @@ Cada prospecto dentro del arreglo "prospectos" debe tener esta estructura exacta
   "draftEmail": "Cuerpo del correo sugerido"
 }
 
-Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío/nulo. Para arrays como painPoints, extrae o deduce hasta 3 dolores principales. Para score y priority, genéralo basándote en qué tan buen prospecto parece.
+Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío/nulo. Para arrays como painPoints, extrae o deduce hasta 3 dolores principales. Para score y priority, genéralo basándose en qué tan buen prospecto parece. Para URLs de LinkedIn y profileImage, solo inclúyelas si están explícitamente en el reporte; si no, devuelve null.
 `;
 
 export const analyzeProspectsWithAI = async (text) => {

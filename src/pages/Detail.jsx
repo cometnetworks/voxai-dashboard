@@ -43,9 +43,13 @@ export default function Detail({ prospect, navigateTo }) {
       <div className="bg-surface-container-low rounded-xl p-6 relative overflow-hidden shadow-none">
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 justify-between">
           <div className="flex items-center gap-5">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary-container rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-              <Building2 size={32} className="text-on-primary"/>
-            </div>
+            {prospect.profileImage ? (
+              <img src={prospect.profileImage} alt={prospect.decisionMaker} className="w-16 h-16 rounded-xl object-cover shadow-lg shadow-primary/20 shrink-0" />
+            ) : (
+              <div className="w-16 h-16 bg-gradient-to-br from-primary to-primary-container rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
+                <Building2 size={32} className="text-on-primary"/>
+              </div>
+            )}
             <div>
               <h1 className="text-2xl font-bold text-on-surface">{prospect.company}</h1>
               <p className="text-sm text-on-surface-variant mt-1">{prospect.industry}</p>
@@ -142,16 +146,25 @@ export default function Detail({ prospect, navigateTo }) {
                   <button onClick={() => copyToClipboard(prospect.phone, 'Teléfono')} className="text-xs text-on-surface-variant hover:text-primary-container opacity-0 group-hover:opacity-100 transition-opacity">Copiar</button>
                 </div>
               )}
-              <div className="flex items-center gap-3 pt-2">
-                {prospect.linkedin && (
+              <div className="flex flex-col gap-2 pt-2">
+                <p className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Social</p>
+                {prospect.linkedin ? (
                   <a href={prospect.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-primary-container hover:underline">
                     <Linkedin size={14}/> Perfil LinkedIn
                   </a>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 italic">
+                    <Linkedin size={14}/> Pendiente de reporte
+                  </span>
                 )}
-                {prospect.companyLinkedin && (
+                {prospect.companyLinkedin ? (
                   <a href={prospect.companyLinkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-primary-container">
                     <Building2 size={14}/> Empresa LinkedIn
                   </a>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 italic">
+                    <Building2 size={14}/> Pendiente de reporte
+                  </span>
                 )}
               </div>
             </div>
