@@ -57,10 +57,16 @@ export default function Reports({ prospects, setProspects, reportsHistory, setRe
             const currentVal = merged[key];
             const newVal = newP[key];
             
-            const isCurrentEmpty = currentVal === null || currentVal === undefined || currentVal.toString().trim() === '';
+            const isCurrentEmpty = currentVal === null || currentVal === undefined || currentVal.toString().trim() === '' || currentVal === 'N/A' || currentVal === 'No disponible' || currentVal === 'Pendiente de reporte';
             const isNewValid = newVal !== null && newVal !== undefined && newVal.toString().trim() !== '';
+            
+            // Overwrite if current is empty/placeholder OR if it's one of the contact/social fields
+            const shouldOverwrite = isNewValid && (
+              isCurrentEmpty || 
+              ['email', 'linkedin', 'companyLinkedin', 'profileImage', 'phone'].includes(key)
+            );
 
-            if (isCurrentEmpty && isNewValid) {
+            if (shouldOverwrite) {
               merged[key] = newVal;
               hasChanges = true;
             }
@@ -79,7 +85,17 @@ export default function Reports({ prospects, setProspects, reportsHistory, setRe
         }
       });
 
-      setProspects(updatedProspects);
+      const sanitizedProspects = updatedProspects.map(p => {
+        const cleaned = {};
+        for (const [key, val] of Object.entries(p)) {
+          if (val !== null) {
+            cleaned[key] = val;
+          }
+        }
+        return cleaned;
+      });
+
+      await setProspects(sanitizedProspects);
       
       const summaryMsg = `Nuevos: ${addedCount}. Actualizados: ${updatedCount}.`;
       setReportsHistory([{ id: Date.now(), name: file.name, date: new Date().toISOString(), count: `${addedCount} nvos / ${updatedCount} act` }, ...reportsHistory]);
