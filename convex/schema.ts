@@ -31,6 +31,7 @@ export default defineSchema({
     emailSentAt: v.optional(v.string()),
     linkedinSearch: v.optional(v.string()),
     aiSummary: v.optional(v.string()),
+    isNewImport: v.optional(v.boolean()),
     // Outreach pipeline
     // extracted | missing_email | enriched | ready_to_send | scheduled |
     // sent | delivered | opened | replied | bounced | failed | do_not_send

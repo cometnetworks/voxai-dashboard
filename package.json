@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy:cloud": "npm run build && npx wrangler pages deploy dist --project-name voxai-dashboard",
+    "deploy:all": "npm run build && npx wrangler pages deploy dist --project-name voxai-dashboard && git push origin main"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",

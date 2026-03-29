@@ -46,8 +46,72 @@ export default function Prospects({ prospects, setProspects, navigateTo }) {
     toast.success('Prospecto actualizado');
   };
 
-  const cancelEdit = () => {
-    setEditingId(null);
+  const newImported = filtered.filter(p => p.isNewImport);
+  const oldImported = filtered.filter(p => !p.isNewImport);
+
+  const renderRow = (p) => {
+    const isEditing = editingId === p.id;
+    return (
+      <tr key={p.id} className={`${isEditing ? 'bg-primary/5' : 'hover:bg-surface-container'} transition-colors`}>
+        <td className="px-4 py-4">
+          {isEditing ? (
+            <div className="space-y-2">
+              <input type="text" value={editForm.company || ''} onChange={(e) => setEditForm({...editForm, company: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
+              <input type="text" value={editForm.industry || ''} onChange={(e) => setEditForm({...editForm, industry: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
+            </div>
+          ) : (
+            <div className="truncate max-w-[250px]"><p className="font-semibold text-on-surface truncate">{p.company} {p.isNewImport && <span className="ml-2 inline-block px-1.5 py-0.5 bg-tertiary/20 text-tertiary text-[10px] rounded-full uppercase tracking-wider font-bold">Nuevo</span>}</p><p className="text-xs text-on-surface-variant truncate">{p.industry}</p></div>
+          )}
+        </td>
+        <td className="px-4 py-4">
+          {isEditing ? (
+            <div className="space-y-2">
+              <input type="text" value={editForm.decisionMaker || ''} onChange={(e) => setEditForm({...editForm, decisionMaker: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
+              <input type="text" value={editForm.role || ''} onChange={(e) => setEditForm({...editForm, role: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
+            </div>
+          ) : (
+            <div className="truncate max-w-[200px]"><p className="font-medium text-on-surface truncate">{p.decisionMaker}</p><p className="text-xs text-on-surface-variant truncate">{p.role}</p></div>
+          )}
+        </td>
+        <td className="px-4 py-4">
+          {isEditing ? (
+            <input type="email" value={editForm.email || ''} onChange={(e) => setEditForm({...editForm, email: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
+          ) : (
+            <div className="truncate max-w-[200px] text-xs"><a href={`mailto:${p.email}`} className="text-primary-container hover:underline">{p.email}</a></div>
+          )}
+        </td>
+        <td className="px-4 py-4">
+          {isEditing ? (
+            <input type="number" value={editForm.score || 0} onChange={(e) => setEditForm({...editForm, score: parseInt(e.target.value)||0})} className="w-16 bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
+          ) : (
+            <span className="inline-flex bg-tertiary/10 text-tertiary px-2 py-1 rounded text-xs font-semibold">{p.score}</span>
+          )}
+        </td>
+        <td className="px-4 py-4">
+          {isEditing ? (
+            <select value={editForm.status || 'Prospecto'} onChange={(e) => setEditForm({...editForm, status: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost">
+              <option value="Prospecto">Prospecto</option><option value="Oportunidad">Oportunidad</option><option value="Propuesta">Propuesta</option><option value="Cerrado">Cerrado</option>
+            </select>
+          ) : (
+            <span className={`px-2 py-1 text-[10px] font-bold rounded-full ${p.status === 'Oportunidad' ? 'bg-error/10 text-error' : p.status === 'Propuesta' ? 'bg-primary/20 text-primary-container' : p.status === 'Cerrado' ? 'bg-tertiary/20 text-tertiary' : 'bg-primary/10 text-primary'}`}>{p.status || 'Prospecto'}</span>
+          )}
+        </td>
+        <td className="px-4 py-4 text-right">
+          {isEditing ? (
+            <div className="flex items-center justify-end gap-2">
+              <button onClick={saveEdit} title="Guardar" className="text-tertiary hover:bg-surface-container-highest p-1.5 rounded-lg transition-colors"><Check size={16} /></button>
+              <button onClick={cancelEdit} title="Cancelar" className="text-on-surface-variant hover:bg-surface-container-highest p-1.5 rounded-lg transition-colors"><XIcon size={16} /></button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-end gap-1">
+              <button onClick={() => navigateTo('detalle', p)} title="Ver detalle" className="text-on-surface-variant hover:text-primary-container hover:bg-surface-container-highest p-1.5 rounded-lg transition-colors"><Eye size={16} /></button>
+              <button onClick={() => startEdit(p)} title="Editar" className="text-on-surface-variant hover:text-primary-container hover:bg-surface-container-highest p-1.5 rounded-lg transition-colors"><Edit2 size={16} /></button>
+              <button onClick={() => handleDelete(p.id)} title="Eliminar" className="text-on-surface-variant hover:text-error hover:bg-error/10 p-1.5 rounded-lg transition-colors"><Trash2 size={16} /></button>
+            </div>
+          )}
+        </td>
+      </tr>
+    );
   };
 
   return (
@@ -63,82 +127,48 @@ export default function Prospects({ prospects, setProspects, navigateTo }) {
           </div>
         </div>
         <div className="overflow-x-auto flex-1 pb-24">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-surface text-on-surface-variant font-medium">
-              <tr><th className="px-4 py-4 min-w-[200px]">Compañía</th><th className="px-4 py-4 min-w-[180px]">Decisor</th><th className="px-4 py-4 min-w-[200px]">Email</th><th className="px-4 py-4">Score</th><th className="px-4 py-4">Status</th><th className="px-4 py-4 text-right">Acciones</th></tr>
-            </thead>
-            <tbody className="[&>*:nth-child(even)]:bg-surface/40">
-              {filtered.map(p => {
-                const isEditing = editingId === p.id;
-                return (
-                  <tr key={p.id} className={`${isEditing ? 'bg-primary/5' : 'hover:bg-surface-container'} transition-colors`}>
-                    <td className="px-4 py-4">
-                      {isEditing ? (
-                        <div className="space-y-2">
-                          <input type="text" value={editForm.company || ''} onChange={(e) => setEditForm({...editForm, company: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
-                          <input type="text" value={editForm.industry || ''} onChange={(e) => setEditForm({...editForm, industry: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
-                        </div>
-                      ) : (
-                        <div className="truncate max-w-[250px]"><p className="font-semibold text-on-surface truncate">{p.company}</p><p className="text-xs text-on-surface-variant truncate">{p.industry}</p></div>
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      {isEditing ? (
-                        <div className="space-y-2">
-                          <input type="text" value={editForm.decisionMaker || ''} onChange={(e) => setEditForm({...editForm, decisionMaker: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
-                          <input type="text" value={editForm.role || ''} onChange={(e) => setEditForm({...editForm, role: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
-                        </div>
-                      ) : (
-                        <div className="truncate max-w-[200px]"><p className="font-medium text-on-surface truncate">{p.decisionMaker}</p><p className="text-xs text-on-surface-variant truncate">{p.role}</p></div>
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      {isEditing ? (
-                        <input type="email" value={editForm.email || ''} onChange={(e) => setEditForm({...editForm, email: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
-                      ) : (
-                        <div className="truncate max-w-[200px] text-xs"><a href={`mailto:${p.email}`} className="text-primary-container hover:underline">{p.email}</a></div>
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      {isEditing ? (
-                        <input type="number" value={editForm.score || 0} onChange={(e) => setEditForm({...editForm, score: parseInt(e.target.value)||0})} className="w-16 bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost" />
-                      ) : (
-                        <span className="inline-flex bg-tertiary/10 text-tertiary px-2 py-1 rounded text-xs font-semibold">{p.score}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-4">
-                      {isEditing ? (
-                        <select value={editForm.status || 'Prospecto'} onChange={(e) => setEditForm({...editForm, status: e.target.value})} className="w-full bg-surface-container-lowest rounded p-1.5 text-xs text-on-surface focus:outline-none focus:shadow-ghost">
-                          <option value="Prospecto">Prospecto</option><option value="Oportunidad">Oportunidad</option><option value="Propuesta">Propuesta</option><option value="Cerrado">Cerrado</option>
-                        </select>
-                      ) : (
-                        <span className={`px-2 py-1 text-[10px] font-bold rounded-full ${p.status === 'Oportunidad' ? 'bg-error/10 text-error' : p.status === 'Propuesta' ? 'bg-primary/20 text-primary-container' : p.status === 'Cerrado' ? 'bg-tertiary/20 text-tertiary' : 'bg-primary/10 text-primary'}`}>{p.status || 'Prospecto'}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      {isEditing ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <button onClick={saveEdit} title="Guardar" className="text-tertiary hover:bg-surface-container-highest p-1.5 rounded-lg transition-colors"><Check size={16} /></button>
-                          <button onClick={cancelEdit} title="Cancelar" className="text-on-surface-variant hover:bg-surface-container-highest p-1.5 rounded-lg transition-colors"><XIcon size={16} /></button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => navigateTo('detalle', p)} title="Ver detalle" className="text-on-surface-variant hover:text-primary-container hover:bg-surface-container-highest p-1.5 rounded-lg transition-colors"><Eye size={16} /></button>
-                          <button onClick={() => startEdit(p)} title="Editar" className="text-on-surface-variant hover:text-primary-container hover:bg-surface-container-highest p-1.5 rounded-lg transition-colors"><Edit2 size={16} /></button>
-                          <button onClick={() => handleDelete(p.id)} title="Eliminar" className="text-on-surface-variant hover:text-error hover:bg-error/10 p-1.5 rounded-lg transition-colors"><Trash2 size={16} /></button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan="6" className="py-12 text-center text-slate-500">No se encontraron prospectos</td>
-                </tr>
+          
+          {newImported.length > 0 && (
+            <div className="mb-6">
+              <div className="bg-tertiary/10 border-b border-tertiary/20 px-4 py-3">
+                <h3 className="text-tertiary font-bold flex items-center gap-2 text-sm">
+                  <Check size={16} /> Prospectos Recientes (Último reporte)
+                </h3>
+              </div>
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-surface text-on-surface-variant font-medium">
+                  <tr><th className="px-4 py-4 min-w-[200px]">Compañía</th><th className="px-4 py-4 min-w-[180px]">Decisor</th><th className="px-4 py-4 min-w-[200px]">Email</th><th className="px-4 py-4">Score</th><th className="px-4 py-4">Status</th><th className="px-4 py-4 text-right">Acciones</th></tr>
+                </thead>
+                <tbody className="[&>*:nth-child(even)]:bg-surface/40">
+                  {newImported.map(renderRow)}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {oldImported.length > 0 && (
+            <div>
+              {newImported.length > 0 && (
+                <div className="bg-surface-container-highest px-4 py-3 border-y border-surface">
+                  <h3 className="text-on-surface font-bold text-sm">Todos los Prospectos</h3>
+                </div>
               )}
-            </tbody>
-          </table>
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                {newImported.length === 0 && (
+                  <thead className="bg-surface text-on-surface-variant font-medium">
+                    <tr><th className="px-4 py-4 min-w-[200px]">Compañía</th><th className="px-4 py-4 min-w-[180px]">Decisor</th><th className="px-4 py-4 min-w-[200px]">Email</th><th className="px-4 py-4">Score</th><th className="px-4 py-4">Status</th><th className="px-4 py-4 text-right">Acciones</th></tr>
+                  </thead>
+                )}
+                <tbody className="[&>*:nth-child(even)]:bg-surface/40">
+                  {oldImported.map(renderRow)}
+                </tbody>
+              </table>
+            </div>
+          )}
+          
+          {filtered.length === 0 && (
+            <div className="py-12 text-center text-slate-500">No se encontraron prospectos</div>
+          )}
         </div>
       </div>
     </div>

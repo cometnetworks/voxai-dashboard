@@ -61,11 +61,11 @@ Cada prospecto dentro del arreglo "prospectos" debe tener esta estructura exacta
   "painPoints": ["Array de strings con los puntos de dolor detectados"],
   "techStack": "Tecnologías que usan",
   "useCase": "Caso de uso que justifica contactarlos",
-  "draftSubject": "Asunto de correo para el primer acercamiento",
-  "draftEmail": "Cuerpo del correo sugerido"
+  "draftSubject": "Asunto de correo para el primer acercamiento explícito en el reporte (si no está explícito, devuelve null)",
+  "draftEmail": "Cuerpo del correo especificado en el reporte (si no está explícito, devuelve null)"
 }
 
-Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío/nulo. Para arrays como painPoints, extrae o deduce hasta 3 dolores principales. Para score y priority, genéralo basándose en qué tan buen prospecto parece. Para URLs de LinkedIn y profileImage, solo inclúyelas si están explícitamente en el reporte; si no, devuelve null. CRÍTICO: el campo email SOLO debe incluirse si el email real aparece escrito en el reporte. Si no está explícito, devuelve null — nunca construyas un email.
+Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío/nulo. Para arrays como painPoints, extrae o deduce hasta 3 dolores principales. Para score y priority, genéralo basándose en qué tan buen prospecto parece. Para URLs de LinkedIn y profileImage, solo inclúyelas si están explícitamente en el reporte; si no, devuelve null. CRÍTICO: los campos email, draftSubject y draftEmail SOLO deben incluirse si aparecen escritos explícitamente en el reporte. Si no están explícitos, devuelve null — nunca los inventes, construyas ni generes automáticamente.
 `;
 
 export const analyzeProspectsWithAI = async (text) => {

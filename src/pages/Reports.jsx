@@ -26,29 +26,56 @@ export default function Reports({ prospects, setProspects, reportsHistory, setRe
       const filteredProspects = newValidProspects.filter(p => p !== null && typeof p === 'object');
       if (filteredProspects.length === 0) throw new Error("No se encontraron prospectos válidos en la respuesta de la IA.");
 
+      // Normalize function to avoid duplicates due to suffixes/punctuation
+      const normalizeCompany = (name) => {
+        if (!name) return '';
+        return name.toLowerCase()
+          .replace(/\b(inc|llc|ltd|s\.a\.|s\.a\. de c\.v\.|corp|co)\b\.?/gi, '')
+          .replace(/[^a-z0-9]/g, '')
+          .trim();
+      };
+
+      // Dedup against self (incoming array might have duplicates from the AI)
+      const uniqueIncoming = [];
+      const incomingSeen = new Set();
+      filteredProspects.forEach(p => {
+        const norm = normalizeCompany(p.company);
+        if (norm) {
+          if (!incomingSeen.has(norm)) {
+            incomingSeen.add(norm);
+            uniqueIncoming.push(p);
+          } else {
+            // If duplicate inside the same PDF, just take the first one found to simplify
+          }
+        } else {
+          uniqueIncoming.push(p); // allow no-names to proceed and just act as new
+        }
+      });
+
       let addedCount = 0;
       let updatedCount = 0;
-      let updatedProspects = [...prospects];
+      // Mark all existing prospects as NOT new
+      let updatedProspects = prospects.map(p => ({ ...p, isNewImport: false }));
 
-      filteredProspects.forEach(newP => {
-        const companyName = (newP.company || '').trim().toLowerCase();
+      uniqueIncoming.forEach(newP => {
+        const normName = normalizeCompany(newP.company);
         
-        // If there's no company name, just add it as a new prospect with a unique ID
-        if (!companyName) {
+        // If there's no valid normalized company name, just add it as a new prospect
+        if (!normName) {
           const uniqueId = `p_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          updatedProspects.unshift({ ...newP, id: uniqueId });
+          updatedProspects.unshift({ ...newP, id: uniqueId, isNewImport: true });
           addedCount++;
           return;
         }
 
         const existingIndex = updatedProspects.findIndex(
-          p => (p.company || '').trim().toLowerCase() === companyName
+          p => normalizeCompany(p.company) === normName
         );
 
         if (existingIndex >= 0) {
           // Merge with existing
           const existing = updatedProspects[existingIndex];
-          const merged = { ...existing };
+          const merged = { ...existing, isNewImport: true }; // Flag as newly updated
           let hasChanges = false;
           
           Object.keys(newP).forEach(key => {
@@ -72,15 +99,14 @@ export default function Reports({ prospects, setProspects, reportsHistory, setRe
             }
           });
 
-          if (hasChanges) {
-             updatedProspects.splice(existingIndex, 1);
-             updatedProspects.unshift(merged); // Move to top of the list
-             updatedCount++;
-          }
+          // Move to top and replace
+          updatedProspects.splice(existingIndex, 1);
+          updatedProspects.unshift(merged); 
+          updatedCount++; // It could be that there were no actual overrides, but we still consider it "updated" or verified by the recent report so we move it to top
         } else {
           // Add as new
           const uniqueId = `p_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          updatedProspects.unshift({ ...newP, id: uniqueId });
+          updatedProspects.unshift({ ...newP, id: uniqueId, isNewImport: true });
           addedCount++;
         }
       });
