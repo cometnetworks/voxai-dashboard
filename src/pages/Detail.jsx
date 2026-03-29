@@ -1,13 +1,74 @@
-import React, { useState } from 'react';
-import { ChevronRight, Building2, AlertCircle, Target, GitMerge, Briefcase, Users, Mail, Sparkles, Activity, MessageSquare, Phone, Linkedin, Clock, StickyNote } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, Building2, AlertCircle, Target, GitMerge, Briefcase, Users, Mail, Sparkles, Activity, MessageSquare, Phone, Linkedin, Clock, StickyNote, Send, CheckCircle2, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
-export default function Detail({ prospect, navigateTo }) {
+export default function Detail({ prospect, setProspects, navigateTo }) {
   const [aiSummary, setAiSummary] = useState(prospect?.aiSummary || '');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [notes, setNotes] = useState(() => {
-    try { return localStorage.getItem(`vox_notes_${prospect?.id}`) || ''; } catch { /* ignore */ }
-  });
+
+  // Notes — local state for immediate feedback, synced to Convex
+  const [notes, setNotes] = useState('');
+  const notesValue        = useQuery(api.notes.get, prospect?.id ? { prospectId: prospect.id } : 'skip');
+  const saveNote          = useMutation(api.notes.set);
+
+  // Populate local state once Convex returns the saved note
+  useEffect(() => {
+    if (notesValue !== undefined) setNotes(notesValue);
+  }, [notesValue]);
+
+  // Email sending state
+  const [showSendModal, setShowSendModal] = useState(false);
+  const [sendTo, setSendTo] = useState('');
+  const [sendSubject, setSendSubject] = useState('');
+  const [sendBody, setSendBody] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
+  const openSendModal = () => {
+    setSendTo(prospect.email || '');
+    setSendSubject(prospect.draftSubject || '');
+    setSendBody(prospect.draftEmail || '');
+    setShowSendModal(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!sendTo.trim()) { toast.error('Ingresa el email del destinatario'); return; }
+    if (!sendSubject.trim()) { toast.error('El asunto no puede estar vacío'); return; }
+    if (!sendBody.trim()) { toast.error('El cuerpo del email no puede estar vacío'); return; }
+
+    setIsSending(true);
+    const toastId = toast.loading('Enviando email...', { position: 'bottom-right' });
+    try {
+      const resp = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: sendTo.trim(), subject: sendSubject.trim(), body: sendBody.trim() }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Error al enviar');
+
+      // Mark prospect as sent
+      if (setProspects) {
+        setProspects(prev => prev.map(p =>
+          p.id === prospect.id
+            ? { ...p, email: sendTo.trim(), emailSent: true, emailSentAt: new Date().toISOString() }
+            : p
+        ));
+      }
+      // Update local email field if it was empty
+      prospect.email = sendTo.trim();
+      prospect.emailSent = true;
+      prospect.emailSentAt = new Date().toISOString();
+
+      toast.success(`Email enviado a ${sendTo.trim()}`, { id: toastId });
+      setShowSendModal(false);
+    } catch (err) {
+      toast.error(err.message, { id: toastId });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   if (!prospect) return <div className="text-center py-20 text-slate-500">Selecciona un prospecto.</div>;
   
@@ -174,7 +235,20 @@ export default function Detail({ prospect, navigateTo }) {
         <div className="bg-surface-container-low rounded-xl p-6 shadow-none">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xs font-bold text-on-surface-variant uppercase flex items-center gap-2"><Mail size={16}/> Email Sugerido (IA)</h3>
-            <button onClick={() => copyToClipboard(prospect.draftEmail, 'Email sugerido')} className="text-xs text-primary-container hover:underline">Copiar Todo</button>
+            <div className="flex items-center gap-2">
+              {prospect.emailSent && (
+                <span className="flex items-center gap-1 text-xs font-semibold text-tertiary bg-tertiary/10 px-2 py-1 rounded-full">
+                  <CheckCircle2 size={12}/> Enviado
+                </span>
+              )}
+              <button onClick={() => copyToClipboard(prospect.draftEmail, 'Email sugerido')} className="text-xs text-on-surface-variant hover:text-primary-container transition-colors">Copiar</button>
+              <button
+                onClick={openSendModal}
+                className="flex items-center gap-1.5 text-xs font-semibold bg-primary text-on-primary px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                <Send size={12}/> {prospect.emailSent ? 'Reenviar' : 'Enviar Email'}
+              </button>
+            </div>
           </div>
           <div className="bg-surface-container-lowest p-4 rounded-lg">
             <div className="mb-3 pb-3 border-b border-surface flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -217,12 +291,90 @@ export default function Detail({ prospect, navigateTo }) {
           value={notes}
           onChange={e => {
             setNotes(e.target.value);
-            try { localStorage.setItem(`vox_notes_${prospect.id}`, e.target.value); } catch { /* ignore */ }
+            saveNote({ prospectId: prospect.id, content: e.target.value });
           }}
           placeholder="Escribe notas privadas sobre este prospecto..."
           className="w-full bg-surface-container-lowest rounded-lg p-4 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none focus:ring-1 focus:ring-primary/30 resize-y min-h-[100px] transition-shadow"
         />
       </div>
+
+      {/* Send Email Modal */}
+      {showSendModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={e => e.target === e.currentTarget && setShowSendModal(false)}>
+          <div className="bg-surface-container-low rounded-2xl shadow-2xl w-full max-w-xl flex flex-col max-h-[90vh]">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-container-highest">
+              <div className="flex items-center gap-2">
+                <Send size={18} className="text-primary-container"/>
+                <h2 className="font-bold text-on-surface">Enviar Email a {prospect.company}</h2>
+              </div>
+              <button onClick={() => setShowSendModal(false)} className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg hover:bg-surface-container-highest transition-colors">
+                <X size={18}/>
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+              {/* To */}
+              <div>
+                <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1.5">Para</label>
+                <input
+                  type="email"
+                  value={sendTo}
+                  onChange={e => setSendTo(e.target.value)}
+                  placeholder="email@empresa.com"
+                  className="w-full bg-surface-container-lowest rounded-lg px-3 py-2.5 text-sm text-on-surface placeholder:text-on-surface-variant/50 outline-none focus:ring-1 focus:ring-primary/40 transition-shadow"
+                />
+                {!prospect.email && (
+                  <p className="text-[11px] text-amber-500 mt-1">Este prospecto no tiene email — búscalo en Apollo y pégalo aquí.</p>
+                )}
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1.5">Asunto</label>
+                <input
+                  type="text"
+                  value={sendSubject}
+                  onChange={e => setSendSubject(e.target.value)}
+                  className="w-full bg-surface-container-lowest rounded-lg px-3 py-2.5 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/40 transition-shadow"
+                />
+              </div>
+
+              {/* Body */}
+              <div>
+                <label className="block text-xs font-bold text-on-surface-variant uppercase mb-1.5">Cuerpo</label>
+                <textarea
+                  value={sendBody}
+                  onChange={e => setSendBody(e.target.value)}
+                  rows={10}
+                  className="w-full bg-surface-container-lowest rounded-lg px-3 py-2.5 text-sm text-on-surface outline-none focus:ring-1 focus:ring-primary/40 resize-y transition-shadow leading-relaxed"
+                />
+              </div>
+
+              {/* From notice */}
+              <p className="text-[11px] text-on-surface-variant bg-surface-container-highest rounded-lg px-3 py-2">
+                Enviado desde <span className="font-semibold text-on-surface">miguel@outreach.voxmedia.com.mx</span> · Reply-To <span className="font-semibold text-on-surface">miguel@voxmedia.com.mx</span>
+              </p>
+            </div>
+
+            {/* Modal footer */}
+            <div className="px-6 py-4 border-t border-surface-container-highest flex items-center justify-between gap-3">
+              <button onClick={() => setShowSendModal(false)} className="text-sm text-on-surface-variant hover:text-on-surface transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={handleSendEmail}
+                disabled={isSending}
+                className="flex items-center gap-2 bg-primary text-on-primary text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <Send size={14}/>
+                {isSending ? 'Enviando...' : 'Confirmar y Enviar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

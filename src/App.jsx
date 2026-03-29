@@ -28,7 +28,8 @@ export default function App() {
   const {
     prospects, setProspects,
     meetings, setMeetings,
-    reportsHistory, setReportsHistory
+    reportsHistory, setReportsHistory,
+    isLoading
   } = useData();
 
   const navigateTo = (view, prospect = null) => {
@@ -42,7 +43,7 @@ export default function App() {
       case 'pipeline': return <Pipeline prospects={prospects} />;
       case 'prospectos': return <Prospects prospects={prospects} setProspects={setProspects} navigateTo={navigateTo} />;
       case 'oportunidades': return <Opportunities prospects={prospects} navigateTo={navigateTo} />;
-      case 'detalle': return <Detail prospect={selectedProspect} navigateTo={navigateTo} />;
+      case 'detalle': return <Detail prospect={selectedProspect} setProspects={setProspects} navigateTo={navigateTo} />;
       case 'reportes': return <Reports prospects={prospects} setProspects={setProspects} reportsHistory={reportsHistory} setReportsHistory={setReportsHistory} />;
       case 'reuniones': return <Meetings prospects={prospects} meetings={meetings} setMeetings={setMeetings} />;
       case 'settings': return <Settings isDark={isDark} toggleTheme={toggleTheme} />;
@@ -68,6 +69,17 @@ export default function App() {
 
   if (!isAuthenticated) {
     return <Login onLogin={() => setIsAuthenticated(true)} />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-[#0B1120]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-on-surface-variant">Cargando datos...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
