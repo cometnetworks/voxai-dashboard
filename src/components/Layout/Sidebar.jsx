@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, GitMerge, Users, Target, FileText, Video, Sun, Moon, X, Settings } from 'lucide-react';
+import { LayoutDashboard, GitMerge, Users, Target, FileText, Video, Sun, Moon, X, Settings, UserPlus, SendHorizontal } from 'lucide-react';
 
 function SidebarItem({ icon, label, view, currentView, onClick, badge, alert, collapsed }) {
   const active = currentView === view;
@@ -56,6 +56,9 @@ export default function Sidebar({ currentView, setCurrentView, isDark, toggleThe
           <SidebarItem icon={<Target size={18} />} label="Oportunidades" view="oportunidades" currentView={currentView} onClick={() => { setCurrentView('oportunidades'); setIsMobileOpen(false); }} badge={urgentCount} alert collapsed={collapsed} />
           <SidebarItem icon={<Video size={18} />} label="Reuniones" view="reuniones" currentView={currentView} onClick={() => { setCurrentView('reuniones'); setIsMobileOpen(false); }} collapsed={collapsed} />
           <SidebarItem icon={<FileText size={18} />} label="Reportes" view="reportes" currentView={currentView} onClick={() => { setCurrentView('reportes'); setIsMobileOpen(false); }} collapsed={collapsed} />
+          {!collapsed && <p className="px-3 pt-6 pb-2 text-xs font-semibold text-on-surface-variant/60 uppercase tracking-widest">Outreach</p>}
+          <SidebarItem icon={<UserPlus size={18} />} label="Enriquecimiento" view="enriquecimiento" currentView={currentView} onClick={() => { setCurrentView('enriquecimiento'); setIsMobileOpen(false); }} collapsed={collapsed} />
+          <SidebarItem icon={<SendHorizontal size={18} />} label="Cola de Envío" view="cola" currentView={currentView} onClick={() => { setCurrentView('cola'); setIsMobileOpen(false); }} collapsed={collapsed} />
           {!collapsed && <p className="px-3 pt-6 pb-2 text-xs font-semibold text-on-surface-variant/60 uppercase tracking-widest">Sistema</p>}
           <SidebarItem icon={<Settings size={18} />} label="Configuración" view="settings" currentView={currentView} onClick={() => { setCurrentView('settings'); setIsMobileOpen(false); }} collapsed={collapsed} />
         </nav>

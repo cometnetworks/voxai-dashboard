@@ -7,7 +7,7 @@ export default defineSchema({
   prospects: defineTable({
     // App-level ID (e.g. "p1", "p_abc123") — indexed for fast lookup
     prospectId: v.string(),
-    // All known prospect fields
+    // Core fields
     company: v.optional(v.string()),
     industry: v.optional(v.string()),
     score: v.optional(v.number()),
@@ -16,6 +16,7 @@ export default defineSchema({
     decisionMaker: v.optional(v.string()),
     role: v.optional(v.string()),
     email: v.optional(v.string()),
+    companyDomain: v.optional(v.string()),
     phone: v.optional(v.string()),
     linkedin: v.optional(v.string()),
     companyLinkedin: v.optional(v.string()),
@@ -30,10 +31,17 @@ export default defineSchema({
     emailSentAt: v.optional(v.string()),
     linkedinSearch: v.optional(v.string()),
     aiSummary: v.optional(v.string()),
-    // Outreach pipeline fields (added in later phases)
+    // Outreach pipeline
+    // extracted | missing_email | enriched | ready_to_send | scheduled |
+    // sent | delivered | opened | replied | bounced | failed | do_not_send
     outreachStatus: v.optional(v.string()),
     resendMessageId: v.optional(v.string()),
-  }).index("by_prospectId", ["prospectId"]),
+    lastSentAt: v.optional(v.string()),
+    bounced: v.optional(v.boolean()),
+    doNotSend: v.optional(v.boolean()),
+  })
+    .index("by_prospectId", ["prospectId"])
+    .index("by_outreachStatus", ["outreachStatus"]),
 
   meetings: defineTable({
     meetingId: v.union(v.string(), v.number()),
@@ -55,7 +63,37 @@ export default defineSchema({
     content: v.string(),
   }).index("by_prospectId", ["prospectId"]),
 
-  // ─── Outreach pipeline tables (Phases 2–3) ─────────────────────────────────
+  // ─── Enrichment pipeline ───────────────────────────────────────────────────
+
+  enrichment_uploads: defineTable({
+    uploadedAt: v.string(),
+    fileName: v.string(),
+    totalRows: v.number(),
+    matchedCount: v.number(),
+    needsReviewCount: v.number(),
+    unmatchedCount: v.number(),
+  }).index("by_uploadedAt", ["uploadedAt"]),
+
+  enrichment_rows: defineTable({
+    uploadId: v.id("enrichment_uploads"),
+    // Apollo CSV data
+    csvCompanyName: v.string(),
+    csvCompanyDomain: v.optional(v.string()),
+    csvContactName: v.string(),
+    csvTitle: v.optional(v.string()),
+    csvEmail: v.string(),
+    csvLinkedinUrl: v.optional(v.string()),
+    // Matching result: 'matched' | 'needs_review' | 'unmatched'
+    matchResult: v.string(),
+    matchReason: v.optional(v.string()),
+    matchedProspectId: v.optional(v.string()),
+    // User action on needs_review: 'approved' | 'rejected' | null
+    reviewStatus: v.optional(v.string()),
+  })
+    .index("by_uploadId", ["uploadId"])
+    .index("by_matchResult", ["matchResult"]),
+
+  // ─── Outreach pipeline tables ───────────────────────────────────────────────
 
   send_queue: defineTable({
     prospectId: v.string(),

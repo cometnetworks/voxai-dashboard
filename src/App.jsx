@@ -15,6 +15,8 @@ import Detail from './pages/Detail';
 import Reports from './pages/Reports';
 import Meetings from './pages/Meetings';
 import Settings from './pages/Settings';
+import Enrichment from './pages/Enrichment';
+import SendQueue from './pages/SendQueue';
 
 export default function App() {
   const { isDark, toggleTheme } = useTheme();
@@ -46,6 +48,8 @@ export default function App() {
       case 'detalle': return <Detail prospect={selectedProspect} setProspects={setProspects} navigateTo={navigateTo} />;
       case 'reportes': return <Reports prospects={prospects} setProspects={setProspects} reportsHistory={reportsHistory} setReportsHistory={setReportsHistory} />;
       case 'reuniones': return <Meetings prospects={prospects} meetings={meetings} setMeetings={setMeetings} />;
+      case 'enriquecimiento': return <Enrichment prospects={prospects} setProspects={setProspects} />;
+      case 'cola': return <SendQueue prospects={prospects} setProspects={setProspects} />;
       case 'settings': return <Settings isDark={isDark} toggleTheme={toggleTheme} />;
       default: return <Dashboard prospects={prospects} navigateTo={navigateTo} />;
     }
@@ -60,6 +64,8 @@ export default function App() {
       'detalle': 'Detalle de Prospecto',
       'reportes': 'Reportes',
       'reuniones': 'Reuniones',
+      'enriquecimiento': 'Enriquecimiento',
+      'cola': 'Cola de Envío',
       'settings': 'Configuración'
     };
     return titles[currentView] || 'Dashboard';

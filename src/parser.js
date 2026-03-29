@@ -52,7 +52,7 @@ Cada prospecto dentro del arreglo "prospectos" debe tener esta estructura exacta
   "status": "Prospecto, Oportunidad, Propuesta o Cerrado",
   "decisionMaker": "Nombre del decisor principal",
   "role": "Cargo del decisor",
-  "email": "Correo electrónico del decisor",
+  "email": "SOLO incluye si el email aparece EXPLÍCITAMENTE en el texto. Si no está disponible, devuelve null. NUNCA construyas ni inventes emails.",
   "phone": "Teléfono del decisor o de la empresa (si está disponible)",
   "linkedin": "URL completa del perfil LinkedIn del decisor (si está disponible)",
   "companyLinkedin": "URL completa del perfil LinkedIn de la empresa (si está disponible)",
@@ -65,7 +65,7 @@ Cada prospecto dentro del arreglo "prospectos" debe tener esta estructura exacta
   "draftEmail": "Cuerpo del correo sugerido"
 }
 
-Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío/nulo. Para arrays como painPoints, extrae o deduce hasta 3 dolores principales. Para score y priority, genéralo basándose en qué tan buen prospecto parece. Para URLs de LinkedIn y profileImage, solo inclúyelas si están explícitamente en el reporte; si no, devuelve null.
+Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío/nulo. Para arrays como painPoints, extrae o deduce hasta 3 dolores principales. Para score y priority, genéralo basándose en qué tan buen prospecto parece. Para URLs de LinkedIn y profileImage, solo inclúyelas si están explícitamente en el reporte; si no, devuelve null. CRÍTICO: el campo email SOLO debe incluirse si el email real aparece escrito en el reporte. Si no está explícito, devuelve null — nunca construyas un email.
 `;
 
 export const analyzeProspectsWithAI = async (text) => {

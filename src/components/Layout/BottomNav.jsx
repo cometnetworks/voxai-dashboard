@@ -1,12 +1,12 @@
 import React from 'react';
-import { LayoutDashboard, Users, GitBranch, Video, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, SendHorizontal, Settings } from 'lucide-react';
 
 const navItems = [
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Home' },
-  { id: 'prospectos', icon: Users, label: 'Prospectos' },
-  { id: 'pipeline', icon: GitBranch, label: 'Pipeline' },
-  { id: 'reuniones', icon: Video, label: 'Reuniones' },
-  { id: 'settings', icon: Settings, label: 'Config' },
+  { id: 'dashboard',       icon: LayoutDashboard,  label: 'Home' },
+  { id: 'prospectos',      icon: Users,             label: 'Prospectos' },
+  { id: 'enriquecimiento', icon: UserPlus,          label: 'Enriquecer' },
+  { id: 'cola',            icon: SendHorizontal,    label: 'Cola' },
+  { id: 'settings',        icon: Settings,          label: 'Config' },
 ];
 
 export default function BottomNav({ currentView, setCurrentView }) {

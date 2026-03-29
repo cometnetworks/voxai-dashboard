@@ -18,6 +18,81 @@ export default function Detail({ prospect, setProspects, navigateTo }) {
     if (notesValue !== undefined) setNotes(notesValue);
   }, [notesValue]);
 
+  // Draft generation state
+  const [localDraftSubject, setLocalDraftSubject] = useState(prospect?.draftSubject || '');
+  const [localDraftEmail,   setLocalDraftEmail]   = useState(prospect?.draftEmail   || '');
+  const [isGeneratingDraft, setIsGeneratingDraft] = useState(false);
+
+  // Keep local draft in sync if prospect prop changes (e.g. after enrichment)
+  useEffect(() => {
+    setLocalDraftSubject(prospect?.draftSubject || '');
+    setLocalDraftEmail(prospect?.draftEmail   || '');
+  }, [prospect?.id]);
+
+  const handleGenerateDraft = async () => {
+    const groqKey       = import.meta.env.VITE_GROQ_API_KEY;
+    const openRouterKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+    if (!groqKey && !openRouterKey) { toast.error('Configura VITE_GROQ_API_KEY o VITE_OPENROUTER_API_KEY'); return; }
+
+    setIsGeneratingDraft(true);
+    const toastId = toast.loading('Generando draft con IA...', { position: 'bottom-right' });
+
+    const prompt = `Genera un email de prospección frío B2B en español para:
+- Empresa: ${prospect.company}
+- Industria: ${prospect.industry || 'No especificada'}
+- Decisor: ${prospect.decisionMaker} — ${prospect.role}
+- Trigger: ${prospect.trigger || 'No especificado'}
+- Pain Points: ${(prospect.painPoints || []).join('; ')}
+- Tech Stack: ${prospect.techStack || 'No especificado'}
+- Caso de uso Vox: ${prospect.useCase || 'No especificado'}
+
+Reglas:
+1. Primer párrafo: conecta con algo específico de la empresa (trigger, años en mercado, posicionamiento)
+2. Segundo párrafo: identifica 1-2 pain points concretos y enlázalos con el reto de conseguir pipeline
+3. Tercer párrafo: presenta Vox Media Agency con 2 beneficios concretos en bullets (• )
+4. CTA: solicita 15-20 minutos esta semana o la próxima
+5. Cierre: "Saludos,\nEquipo Vox Media Agency"
+6. Tono: profesional, directo, sin exageraciones
+7. Máximo 250 palabras en el cuerpo
+
+Devuelve SOLO JSON válido: { "subject": "...", "body": "..." }`;
+
+    try {
+      const makeReq = (url, key, model) => fetch(url, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json',
+          ...(url.includes('openrouter') ? { 'HTTP-Referer': window.location.href, 'X-Title': 'VoxAI Dashboard' } : {}) },
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.4, response_format: { type: 'json_object' } }),
+      });
+
+      let res = groqKey
+        ? await makeReq('https://api.groq.com/openai/v1/chat/completions', groqKey, 'llama-3.3-70b-versatile')
+        : null;
+      if ((!res || res.status === 429) && openRouterKey)
+        res = await makeReq('https://openrouter.ai/api/v1/chat/completions', openRouterKey, 'meta-llama/llama-3.3-70b-instruct');
+      if (!res || !res.ok) throw new Error(`Error IA (${res?.status})`);
+
+      const data    = await res.json();
+      const parsed  = JSON.parse(data.choices[0].message.content);
+      const subject = parsed.subject || '';
+      const body    = parsed.body || '';
+
+      setLocalDraftSubject(subject);
+      setLocalDraftEmail(body);
+
+      if (setProspects) {
+        setProspects(prev => prev.map(p =>
+          p.id === prospect.id ? { ...p, draftSubject: subject, draftEmail: body } : p
+        ));
+      }
+      toast.success('Draft generado', { id: toastId });
+    } catch (err) {
+      toast.error(err.message, { id: toastId });
+    } finally {
+      setIsGeneratingDraft(false);
+    }
+  };
+
   // Email sending state
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendTo, setSendTo] = useState('');
@@ -241,7 +316,9 @@ export default function Detail({ prospect, setProspects, navigateTo }) {
                   <CheckCircle2 size={12}/> Enviado
                 </span>
               )}
-              <button onClick={() => copyToClipboard(prospect.draftEmail, 'Email sugerido')} className="text-xs text-on-surface-variant hover:text-primary-container transition-colors">Copiar</button>
+              {localDraftEmail && (
+                <button onClick={() => copyToClipboard(localDraftEmail, 'Email sugerido')} className="text-xs text-on-surface-variant hover:text-primary-container transition-colors">Copiar</button>
+              )}
               <button
                 onClick={openSendModal}
                 className="flex items-center gap-1.5 text-xs font-semibold bg-primary text-on-primary px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors"
@@ -250,13 +327,29 @@ export default function Detail({ prospect, setProspects, navigateTo }) {
               </button>
             </div>
           </div>
-          <div className="bg-surface-container-lowest p-4 rounded-lg">
-            <div className="mb-3 pb-3 border-b border-surface flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <p className="font-semibold text-sm text-on-surface"><span className="text-on-surface-variant mr-2">Asunto:</span> {prospect.draftSubject}</p>
-              <button onClick={() => copyToClipboard(prospect.draftSubject, 'Asunto')} className="text-xs text-on-surface-variant hover:text-primary-container self-end sm:self-auto">Copiar Asunto</button>
+          {localDraftEmail ? (
+            <div className="bg-surface-container-lowest p-4 rounded-lg">
+              <div className="mb-3 pb-3 border-b border-surface flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <p className="font-semibold text-sm text-on-surface"><span className="text-on-surface-variant mr-2">Asunto:</span> {localDraftSubject}</p>
+                <button onClick={() => copyToClipboard(localDraftSubject, 'Asunto')} className="text-xs text-on-surface-variant hover:text-primary-container self-end sm:self-auto">Copiar Asunto</button>
+              </div>
+              <p className="text-sm text-on-surface-variant whitespace-pre-wrap leading-relaxed">{localDraftEmail}</p>
             </div>
-            <p className="text-sm text-on-surface-variant whitespace-pre-wrap leading-relaxed">{prospect.draftEmail}</p>
-          </div>
+          ) : (
+            <div className="bg-surface-container-lowest p-6 rounded-lg flex flex-col items-center gap-3 text-center">
+              <Sparkles size={28} className="text-on-surface-variant/40" />
+              <p className="text-sm text-on-surface-variant">Este prospecto no tiene draft de email.</p>
+              <button
+                onClick={handleGenerateDraft}
+                disabled={isGeneratingDraft}
+                className="flex items-center gap-2 bg-primary text-on-primary text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <Sparkles size={14} />
+                {isGeneratingDraft ? 'Generando...' : 'Generar Draft con IA'}
+              </button>
+              <p className="text-xs text-on-surface-variant/60">Basado en trigger, pain points y caso de uso del prospecto</p>
+            </div>
+          )}
         </div>
       </div>
 
