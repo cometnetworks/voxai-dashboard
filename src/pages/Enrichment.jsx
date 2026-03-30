@@ -51,12 +51,12 @@ function parseCSV(text) {
 
   // Map Apollo column name variants to canonical keys
   const aliases = {
-    company_name: ['company_name', 'company', 'organization'],
-    company_domain: ['company_domain', 'domain', 'website', 'company_website'],
-    contact_name: ['contact_name', 'full_name', 'name', 'person_name'],
-    title: ['title', 'job_title', 'position'],
-    email: ['email', 'email_address', 'work_email'],
-    linkedin_url: ['linkedin_url', 'person_linkedin_url', 'linkedin'],
+    company_name: ['company_name', 'company', 'organization', 'compaa', 'compaia', 'empresa'],
+    company_domain: ['company_domain', 'domain', 'website', 'company_website', 'dominio'],
+    contact_name: ['contact_name', 'full_name', 'name', 'person_name', 'decisor', 'contacto', 'nombre'],
+    title: ['title', 'job_title', 'position', 'cargo', 'puesto'],
+    email: ['email', 'email_address', 'work_email', 'correo'],
+    linkedin_url: ['linkedin_url', 'person_linkedin_url', 'linkedin', 'url_linkedin'],
   };
 
   const colIndex = {};

@@ -357,23 +357,9 @@ Devuelve SOLO JSON válido: { "subject": "...", "body": "..." }`;
       <div className="bg-surface-container-low rounded-xl p-6 shadow-elevation">
         <h3 className="text-xs font-bold text-on-surface-variant uppercase flex items-center gap-2 mb-5"><Clock size={16} className="text-primary-container"/> Activity Timeline</h3>
         <div className="space-y-4">
-          {[
-            { action: 'Email abierto', detail: 'Propuesta Enterprise Q3', time: 'Hace 2h', dot: 'bg-tertiary' },
-            { action: 'Llamada programada', detail: 'Mañana • 10:30 AM', time: 'Próximamente', dot: 'bg-primary-container' },
-            { action: 'Reunión intro', detail: 'Completada', time: 'Hace 3 días', dot: 'bg-on-surface-variant' },
-          ].map((item, i) => (
-            <div key={i} className="flex gap-3">
-              <div className="flex flex-col items-center">
-                <div className={`w-2.5 h-2.5 rounded-full ${item.dot} mt-1.5`}></div>
-                {i < 2 && <div className="w-px flex-1 bg-surface-container-highest mt-1"></div>}
-              </div>
-              <div className="pb-3">
-                <p className="text-sm font-medium text-on-surface">{item.action}</p>
-                <p className="text-xs text-on-surface-variant">{item.detail}</p>
-                <p className="text-[10px] text-on-surface-variant/60 mt-0.5">{item.time}</p>
-              </div>
-            </div>
-          ))}
+          <div className="text-sm text-on-surface-variant italic text-center py-6">
+            No hay actividad reciente registrada para este prospecto.
+          </div>
         </div>
       </div>
 

@@ -46,6 +46,36 @@ export default function Dashboard({ prospects, navigateTo }) {
         <KPICard title="Revenue Forecast (30d)" value={`$${(forecastValue/1000).toFixed(1)}k`} sub="± 15% Confianza AI" icon={<Building2 className="text-purple-500" />} />
       </div>
 
+      {prospects.some(p => p.isNewImport) && (
+        <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 mt-6 shadow-elevation">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+              Importaciones Recientes (Último Reporte)
+            </h3>
+            <button onClick={() => navigateTo('prospectos')} className="text-sm text-primary hover:underline font-medium">Ir al Directorio</button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {prospects.filter(p => p.isNewImport).slice(0, 3).map(p => (
+              <div key={p.id} onClick={() => navigateTo('detalle', p)} className="bg-surface rounded-lg p-4 cursor-pointer hover:bg-surface-container-high transition-colors border border-outline-variant/30">
+                <div className="font-semibold text-on-surface truncate text-base">{p.company}</div>
+                <div className="text-xs text-on-surface-variant truncate mt-1">{p.decisionMaker || 'Sin contacto'} • {p.industry}</div>
+                <div className="mt-3 flex justify-between items-center">
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">Nuevo</span>
+                  <span className="text-xs font-bold text-tertiary bg-tertiary/10 px-2 py-0.5 rounded">Score: {p.score}</span>
+                </div>
+              </div>
+            ))}
+            {prospects.filter(p => p.isNewImport).length > 3 && (
+              <div onClick={() => navigateTo('prospectos')} className="bg-surface/50 rounded-lg p-4 cursor-pointer hover:bg-surface-container-high transition-colors border border-dashed border-outline-variant/50 flex flex-col items-center justify-center text-center">
+                <span className="text-lg font-bold text-on-surface-variant">+{prospects.filter(p => p.isNewImport).length - 3}</span>
+                <span className="text-xs text-on-surface-variant mt-1">Ver todos los nuevos</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <div className="bg-surface-container-low rounded-xl p-6">
           <h3 className="text-lg font-semibold text-on-surface mb-6">Distribución por Status</h3>

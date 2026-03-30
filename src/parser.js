@@ -61,11 +61,11 @@ Cada prospecto dentro del arreglo "prospectos" debe tener esta estructura exacta
   "painPoints": ["Array de strings con los puntos de dolor detectados"],
   "techStack": "Tecnologías que usan",
   "useCase": "Caso de uso que justifica contactarlos",
-  "draftSubject": "Asunto de correo para el primer acercamiento explícito en el reporte (si no está explícito, devuelve null)",
-  "draftEmail": "Cuerpo del correo especificado en el reporte (si no está explícito, devuelve null)"
+  "draftSubject": "Asunto de correo para el primer acercamiento explícito en el reporte (si no está explícito, devuelve null). Limpia textos basura como 'Copiar Asunto'.",
+  "draftEmail": "Cuerpo exacto e íntegro del correo especificado en el reporte, capturando desde el saludo hasta la firma final sin recortarlo (si no está explícito, devuelve null). CRÍTICO: Reemplaza automáticamente los placeholders como '[Nombre Decisor]', '[Nombre]', o similares con el valor que hayas extraído para 'decisionMaker' y elimina textos como 'EMAIL DRAFT (listo para copiar y pegar)'."
 }
 
-Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío/nulo. Para arrays como painPoints, extrae o deduce hasta 3 dolores principales. Para score y priority, genéralo basándose en qué tan buen prospecto parece. Para URLs de LinkedIn y profileImage, solo inclúyelas si están explícitamente en el reporte; si no, devuelve null. CRÍTICO: los campos email, draftSubject y draftEmail SOLO deben incluirse si aparecen escritos explícitamente en el reporte. Si no están explícitos, devuelve null — nunca los inventes, construyas ni generes automáticamente.
+Si falta algún dato numérico o array, invéntalo lógicamente o déjalo vacío/nulo. Para arrays como painPoints, extrae o deduce hasta 3 dolores principales. Para score y priority, genéralo basándose en qué tan buen prospecto parece. Para URLs de LinkedIn y profileImage, solo inclúyelas si están explícitamente en el reporte; si no, devuelve null. CRÍTICO: los campos email, draftSubject y draftEmail SOLO deben incluirse si aparecen escritos explícitamente en el reporte. Si no están explícitos, devuelve null — nunca los inventes, construyas ni generes automáticamente. CRÍTICO 2: Asegúrate de que draftEmail tenga a la persona de contacto en el saludo (ej: 'Hola Juan,').
 `;
 
 export const analyzeProspectsWithAI = async (text) => {
