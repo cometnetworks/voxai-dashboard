@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Building2, AlertCircle, Target, GitMerge, Briefcase, Users, Mail, Sparkles, Activity, MessageSquare, Phone, Linkedin, Clock, StickyNote, Send, CheckCircle2, X } from 'lucide-react';
+import { ChevronRight, Building2, AlertCircle, Target, GitMerge, Briefcase, Users, Mail, Sparkles, Activity, MessageSquare, Phone, Linkedin, Clock, StickyNote, Send, CheckCircle2, X, Edit2, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
@@ -17,6 +17,37 @@ export default function Detail({ prospect, setProspects, navigateTo }) {
   useEffect(() => {
     if (notesValue !== undefined) setNotes(notesValue);
   }, [notesValue]);
+
+  // Editing state
+  const updateProspect = useMutation(api.prospects.update);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
+
+  const toggleEdit = () => {
+    if (isEditing) {
+      setIsEditing(false);
+    } else {
+      setEditForm({ ...prospect });
+      setIsEditing(true);
+    }
+  };
+
+  const saveEdit = async () => {
+    const loading = toast.loading('Guardando...');
+    try {
+      const { id, _id, _creationTime, prospectId, ...data } = editForm;
+      await updateProspect({ id: prospect.id, data });
+      if (setProspects) {
+        setProspects(prev => prev.map(p => p.id === prospect.id ? { ...prospect, ...data } : p));
+        // Need to update the main prospect obj locally too for immediate view sync inside this component:
+        Object.assign(prospect, { ...editForm });
+      }
+      setIsEditing(false);
+      toast.success('Prospecto actualizado', { id: loading });
+    } catch (err) {
+      toast.error('Error al actualizar', { id: loading });
+    }
+  };
 
   // Draft generation state
   const [localDraftSubject, setLocalDraftSubject] = useState(prospect?.draftSubject || '');
@@ -147,6 +178,52 @@ Devuelve SOLO JSON válido: { "subject": "...", "body": "..." }`;
 
   if (!prospect) return <div className="text-center py-20 text-slate-500">Selecciona un prospecto.</div>;
   
+  // Build dynamic Activity Timeline
+  const activityTimeline = [];
+  if (prospect._creationTime) {
+    activityTimeline.push({
+      date: new Date(prospect._creationTime).toISOString(),
+      title: 'Prospecto Creado',
+      desc: 'Importado a la base de datos',
+      icon: <Target size={14} className="text-tertiary" />
+    });
+  }
+  if (prospect.emailSentAt) {
+    activityTimeline.push({
+      date: prospect.emailSentAt,
+      title: 'Email de Prospección Enviado',
+      desc: `A la dirección: ${prospect.email}`,
+      icon: <Send size={14} className="text-primary-container" />
+    });
+  }
+  if (prospect.bounced) {
+    activityTimeline.push({
+      date: prospect.lastSentAt || prospect.emailSentAt || new Date().toISOString(),
+      title: 'Email Rebotado',
+      desc: 'El servidor rechazó el correo (hard bounce)',
+      icon: <X size={14} className="text-error" />
+    });
+  }
+  if (prospect.outreachStatus === 'replied') {
+    activityTimeline.push({
+      date: new Date().toISOString(),
+      title: 'Respuesta Recibida',
+      desc: 'El prospecto ha respondido al correo',
+      icon: <MessageSquare size={14} className="text-primary" />
+    });
+  }
+  if (prospect.status === 'Oportunidad') {
+    activityTimeline.push({
+      date: new Date().toISOString(), // Fallback if no timeline date exists for status change
+      title: 'Calificado como Oportunidad',
+      desc: 'El prospecto avanzó en el pipeline',
+      icon: <Sparkles size={14} className="text-amber-500" />
+    });
+  }
+
+  // Sort timeline by date descending
+  activityTimeline.sort((a, b) => new Date(b.date) - new Date(a.date));
+
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
     toast.success(`${type} copiado al portapapeles`, { position: 'bottom-right' });
@@ -186,15 +263,66 @@ Devuelve SOLO JSON válido: { "subject": "...", "body": "..." }`;
                 <Building2 size={32} className="text-on-primary"/>
               </div>
             )}
-            <div>
-              <h1 className="text-2xl font-bold text-on-surface">{prospect.company}</h1>
-              <p className="text-sm text-on-surface-variant mt-1">{prospect.industry}</p>
+            <div className="min-w-[200px]">
+              {isEditing ? (
+                <>
+                  <input type="text" value={editForm.company || ''} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded p-1 mb-1 font-bold text-xl outline-none focus:border-primary" placeholder="Compañía" />
+                  <input type="text" value={editForm.industry || ''} onChange={(e) => setEditForm({ ...editForm, industry: e.target.value })} className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded p-1 text-sm outline-none focus:border-primary" placeholder="Industria" />
+                </>
+              ) : (
+                <>
+                  <h1 className="text-2xl font-bold text-on-surface">{prospect.company}</h1>
+                  <p className="text-sm text-on-surface-variant mt-1">{prospect.industry}</p>
+                </>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-2 mt-4 sm:mt-0">
-            <span className={`px-3 py-1 text-xs font-bold rounded-full ${prospect.status === 'Oportunidad' ? 'bg-error/10 text-error' : prospect.status === 'Propuesta' ? 'bg-primary/20 text-primary-container' : prospect.status === 'Cerrado' ? 'bg-tertiary/20 text-tertiary' : 'bg-primary/10 text-primary'}`}>{prospect.status || 'Prospecto'}</span>
-            <span className={`px-3 py-1 text-xs font-bold rounded-full shadow-ghost ${['Urgente', 'High'].includes(prospect.priority) ? 'bg-error/10 text-error' : prospect.priority === 'Alta' ? 'bg-error/5 text-error/80' : 'bg-surface text-on-surface-variant'}`}>{prospect.priority}</span>
-            <span className="px-3 py-1 text-xs font-bold rounded-full bg-tertiary/10 text-tertiary shadow-ghost">{prospect.score}/100</span>
+          <div className="flex flex-wrap items-center gap-2 mt-4 sm:mt-0 xl:justify-end">
+            {isEditing ? (
+               <div className="flex flex-col sm:flex-row items-end gap-3 text-sm">
+                 <div className="flex flex-col gap-2">
+                   <div className="flex items-center justify-end gap-2">
+                     <label className="text-on-surface-variant text-xs">Status</label>
+                     <select value={editForm.status || 'Prospecto'} onChange={e => setEditForm({...editForm, status: e.target.value})} className="bg-surface-container-lowest border border-outline-variant/30 text-on-surface rounded px-2 py-1 outline-none">
+                       <option value="Prospecto">Prospecto</option>
+                       <option value="Oportunidad">Oportunidad</option>
+                       <option value="Propuesta">Propuesta</option>
+                       <option value="Cerrado">Cerrado</option>
+                     </select>
+                   </div>
+                   <div className="flex items-center justify-end gap-2">
+                     <label className="text-on-surface-variant text-xs">Prioridad</label>
+                     <select value={editForm.priority || 'Baja'} onChange={e => setEditForm({...editForm, priority: e.target.value})} className="bg-surface-container-lowest border border-outline-variant/30 text-on-surface rounded px-2 py-1 outline-none">
+                       <option value="Baja">Baja</option>
+                       <option value="Media">Media</option>
+                       <option value="Alta">Alta</option>
+                       <option value="Urgente">Urgente</option>
+                     </select>
+                   </div>
+                   <div className="flex items-center justify-end gap-2">
+                     <label className="text-on-surface-variant text-xs">Score</label>
+                     <input type="number" value={editForm.score || 0} onChange={e => setEditForm({...editForm, score: parseInt(e.target.value)||0})} className="w-20 bg-surface-container-lowest border border-outline-variant/30 text-on-surface rounded px-2 py-1 outline-none" />
+                   </div>
+                 </div>
+                 <div className="flex flex-col gap-2 ml-4">
+                    <button onClick={saveEdit} className="bg-primary text-on-primary px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors">
+                      <Check size={16} /> Guardar
+                    </button>
+                    <button onClick={toggleEdit} className="bg-surface-container-highest text-on-surface px-4 py-2 rounded-lg text-sm font-medium hover:bg-surface-container-highest/80 transition-colors text-center">
+                      Cancelar
+                    </button>
+                 </div>
+               </div>
+            ) : (
+              <>
+                <span className={`px-3 py-1 text-xs font-bold rounded-full ${prospect.status === 'Oportunidad' ? 'bg-error/10 text-error' : prospect.status === 'Propuesta' ? 'bg-primary/20 text-primary-container' : prospect.status === 'Cerrado' ? 'bg-tertiary/20 text-tertiary' : 'bg-primary/10 text-primary'}`}>{prospect.status || 'Prospecto'}</span>
+                <span className={`px-3 py-1 text-xs font-bold rounded-full shadow-ghost ${['Urgente', 'High'].includes(prospect.priority) ? 'bg-error/10 text-error' : prospect.priority === 'Alta' ? 'bg-error/5 text-error/80' : 'bg-surface text-on-surface-variant'}`}>{prospect.priority}</span>
+                <span className="px-3 py-1 text-xs font-bold rounded-full bg-tertiary/10 text-tertiary shadow-ghost">{prospect.score}/100</span>
+                <button onClick={toggleEdit} title="Editar prospecto" className="ml-2 text-on-surface-variant hover:text-primary-container p-2 rounded-lg bg-surface-container hover:bg-surface-container-highest transition-colors">
+                  <Edit2 size={16} />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -262,47 +390,79 @@ Devuelve SOLO JSON válido: { "subject": "...", "body": "..." }`;
             <h3 className="text-xs font-bold text-on-surface-variant uppercase flex items-center gap-2"><Users size={16}/> Decisor Principal</h3>
           </div>
           <div className="bg-surface-container-lowest p-4 rounded-lg">
-            <p className="text-lg font-semibold text-on-surface">{prospect.decisionMaker}</p>
-            <p className="text-sm text-on-surface-variant mb-3">{prospect.role}</p>
+            {isEditing ? (
+              <div className="space-y-2 mb-3">
+                <input type="text" value={editForm.decisionMaker || ''} onChange={e => setEditForm({...editForm, decisionMaker: e.target.value})} className="w-full text-lg font-semibold bg-surface-container text-on-surface border border-outline-variant/30 rounded px-2 py-1 outline-none focus:border-primary" placeholder="Nombre" />
+                <input type="text" value={editForm.role || ''} onChange={e => setEditForm({...editForm, role: e.target.value})} className="w-full text-sm bg-surface-container text-on-surface border border-outline-variant/30 rounded px-2 py-1 outline-none focus:border-primary" placeholder="Cargo" />
+              </div>
+            ) : (
+              <>
+                <p className="text-lg font-semibold text-on-surface">{prospect.decisionMaker}</p>
+                <p className="text-sm text-on-surface-variant mb-3">{prospect.role}</p>
+              </>
+            )}
             
             <div className="space-y-2 mt-4">
-              <div className="flex items-center justify-between group">
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail size={16} className="text-on-surface-variant"/>
-                  <a href={`mailto:${prospect.email}`} className="text-primary-container hover:underline">{prospect.email}</a>
-                </div>
-                <button onClick={() => copyToClipboard(prospect.email, 'Email')} className="text-xs text-on-surface-variant hover:text-primary-container opacity-0 group-hover:opacity-100 transition-opacity">Copiar</button>
-              </div>
-              {prospect.phone && (
-                <div className="flex items-center justify-between group">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone size={16} className="text-on-surface-variant"/>
-                    <a href={`tel:${prospect.phone}`} className="text-primary-container hover:underline">{prospect.phone}</a>
+              {isEditing ? (
+                <div className="space-y-3 pb-2 text-sm">
+                  <div>
+                    <label className="text-xs text-on-surface-variant font-medium">Email</label>
+                    <input type="email" value={editForm.email || ''} onChange={e => setEditForm({...editForm, email: e.target.value})} className="w-full bg-surface-container text-on-surface border border-outline-variant/30 rounded px-2 py-1.5 outline-none focus:border-primary" placeholder="Email" />
                   </div>
-                  <button onClick={() => copyToClipboard(prospect.phone, 'Teléfono')} className="text-xs text-on-surface-variant hover:text-primary-container opacity-0 group-hover:opacity-100 transition-opacity">Copiar</button>
+                  <div>
+                    <label className="text-xs text-on-surface-variant font-medium">Teléfono</label>
+                    <input type="tel" value={editForm.phone || ''} onChange={e => setEditForm({...editForm, phone: e.target.value})} className="w-full bg-surface-container text-on-surface border border-outline-variant/30 rounded px-2 py-1.5 outline-none focus:border-primary" placeholder="Teléfono" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-on-surface-variant font-medium">LinkedIn Persona</label>
+                    <input type="url" value={editForm.linkedin || ''} onChange={e => setEditForm({...editForm, linkedin: e.target.value})} className="w-full bg-surface-container text-on-surface border border-outline-variant/30 rounded px-2 py-1.5 outline-none focus:border-primary" placeholder="URL LinkedIn de la persona" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-on-surface-variant font-medium">LinkedIn Empresa</label>
+                    <input type="url" value={editForm.companyLinkedin || ''} onChange={e => setEditForm({...editForm, companyLinkedin: e.target.value})} className="w-full bg-surface-container text-on-surface border border-outline-variant/30 rounded px-2 py-1.5 outline-none focus:border-primary" placeholder="URL LinkedIn de la empresa" />
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between group">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail size={16} className="text-on-surface-variant"/>
+                      <a href={`mailto:${prospect.email}`} className="text-primary-container hover:underline">{prospect.email}</a>
+                    </div>
+                    <button onClick={() => copyToClipboard(prospect.email, 'Email')} className="text-xs text-on-surface-variant hover:text-primary-container opacity-0 group-hover:opacity-100 transition-opacity">Copiar</button>
+                  </div>
+                  {prospect.phone && (
+                    <div className="flex items-center justify-between group">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone size={16} className="text-on-surface-variant"/>
+                        <a href={`tel:${prospect.phone}`} className="text-primary-container hover:underline">{prospect.phone}</a>
+                      </div>
+                      <button onClick={() => copyToClipboard(prospect.phone, 'Teléfono')} className="text-xs text-on-surface-variant hover:text-primary-container opacity-0 group-hover:opacity-100 transition-opacity">Copiar</button>
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2 pt-2">
+                    <p className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Social</p>
+                    {prospect.linkedin ? (
+                      <a href={prospect.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-primary-container hover:underline">
+                        <Linkedin size={14}/> Perfil LinkedIn
+                      </a>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 italic">
+                        <Linkedin size={14}/> Pendiente de reporte
+                      </span>
+                    )}
+                    {prospect.companyLinkedin ? (
+                      <a href={prospect.companyLinkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-primary-container">
+                        <Building2 size={14}/> Empresa LinkedIn
+                      </a>
+                    ) : (
+                      <span className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 italic">
+                        <Building2 size={14}/> Pendiente de reporte
+                      </span>
+                    )}
+                  </div>
+                </>
               )}
-              <div className="flex flex-col gap-2 pt-2">
-                <p className="text-[10px] uppercase font-bold text-on-surface-variant tracking-wider">Social</p>
-                {prospect.linkedin ? (
-                  <a href={prospect.linkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-primary-container hover:underline">
-                    <Linkedin size={14}/> Perfil LinkedIn
-                  </a>
-                ) : (
-                  <span className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 italic">
-                    <Linkedin size={14}/> Pendiente de reporte
-                  </span>
-                )}
-                {prospect.companyLinkedin ? (
-                  <a href={prospect.companyLinkedin} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-primary-container">
-                    <Building2 size={14}/> Empresa LinkedIn
-                  </a>
-                ) : (
-                  <span className="flex items-center gap-1.5 text-xs text-on-surface-variant/50 italic">
-                    <Building2 size={14}/> Pendiente de reporte
-                  </span>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -357,9 +517,30 @@ Devuelve SOLO JSON válido: { "subject": "...", "body": "..." }`;
       <div className="bg-surface-container-low rounded-xl p-6 shadow-elevation">
         <h3 className="text-xs font-bold text-on-surface-variant uppercase flex items-center gap-2 mb-5"><Clock size={16} className="text-primary-container"/> Activity Timeline</h3>
         <div className="space-y-4">
-          <div className="text-sm text-on-surface-variant italic text-center py-6">
-            No hay actividad reciente registrada para este prospecto.
-          </div>
+          {activityTimeline.length === 0 ? (
+            <div className="text-sm text-on-surface-variant italic text-center py-6">
+              No hay actividad reciente registrada para este prospecto.
+            </div>
+          ) : (
+            <div className="relative border-l border-surface-container-highest ml-3 space-y-6 pb-2">
+              {activityTimeline.map((item, i) => (
+                <div key={i} className="relative pl-6">
+                  <div className="absolute -left-[13px] top-1 bg-surface-container-low p-1 rounded-full border border-surface-container-highest">
+                    <div className="bg-surface-container-highest rounded-full p-1.5 flex items-center justify-center shadow-ghost">
+                      {item.icon}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-on-surface">{item.title}</h4>
+                    <p className="text-xs text-on-surface-variant mt-1">{item.desc}</p>
+                    <span className="text-[10px] text-on-surface-variant/70 font-medium uppercase mt-2 inline-block pt-1 border-t border-surface-container-highest max-w-[200px]">
+                      {new Date(item.date).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

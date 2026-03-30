@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Search, Download, Edit2, Trash2, Check, X as XIcon, Eye, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 
 const exportToCSV = (data) => {
   const headers = ['Compañía', 'Industria', 'Decisor', 'Cargo', 'Email', 'Score', 'Prioridad', 'Status'];
@@ -26,6 +28,9 @@ export default function Prospects({ prospects, setProspects, navigateTo }) {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
 
+  const updateProspect = useMutation(api.prospects.update);
+  const removeProspect = useMutation(api.prospects.remove);
+
   const handleColSort = (col) => {
     if (sortBy === col) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -45,24 +50,37 @@ export default function Prospects({ prospects, setProspects, navigateTo }) {
     if (sortBy === 'recent') return (b.isNewImport ? 1 : 0) - (a.isNewImport ? 1 : 0);
     let cmp = 0;
     if (sortBy === 'score') cmp = (a.score || 0) - (b.score || 0);
-    else if (sortBy === 'company') cmp = (a.company || '').localeCompare(b.company || '');
-    else if (sortBy === 'decisionMaker') cmp = (a.decisionMaker || '').localeCompare(b.decisionMaker || '');
-    else if (sortBy === 'status') cmp = (a.status || '').localeCompare(b.status || '');
+    else if (sortBy === 'company') cmp = (a.company || '').localeCompare(b.company || '', undefined, { sensitivity: 'base' });
+    else if (sortBy === 'decisionMaker') cmp = (a.decisionMaker || '').localeCompare(b.decisionMaker || '', undefined, { sensitivity: 'base' });
+    else if (sortBy === 'status') cmp = (a.status || '').localeCompare(b.status || '', undefined, { sensitivity: 'base' });
     return sortDir === 'asc' ? cmp : -cmp;
   });
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar este prospecto?')) {
-      setProspects(prev => prev.filter(p => p.id !== id));
-      toast.success('Prospecto eliminado');
+      const loading = toast.loading('Eliminando...');
+      try {
+        await removeProspect({ id });
+        setProspects(prev => prev.filter(p => p.id !== id));
+        toast.success('Prospecto eliminado', { id: loading });
+      } catch (e) {
+        toast.error('Error al eliminar', { id: loading });
+      }
     }
   };
 
   const startEdit = (p) => { setEditingId(p.id); setEditForm({ ...p }); };
-  const saveEdit = () => {
-    setProspects(prev => prev.map(p => p.id === editingId ? { ...editForm } : p));
-    setEditingId(null);
-    toast.success('Prospecto actualizado');
+  const saveEdit = async () => {
+    const loading = toast.loading('Guardando...');
+    try {
+      const { id, _id, _creationTime, prospectId, ...data } = editForm;
+      await updateProspect({ id: editingId, data });
+      setProspects(prev => prev.map(p => p.id === editingId ? { ...editForm } : p));
+      setEditingId(null);
+      toast.success('Prospecto actualizado', { id: loading });
+    } catch (e) {
+      toast.error('Error al actualizar', { id: loading });
+    }
   };
   const cancelEdit = () => { setEditingId(null); setEditForm({}); };
 
