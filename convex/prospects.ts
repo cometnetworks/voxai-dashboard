@@ -52,7 +52,7 @@ export const batchUpsert = mutation({
 export const remove = mutation({
   args: { id: v.string() },
   handler: async (ctx, { id }) => {
-    const existing = await ctx.db.query("prospects").filter(q => q.eq(q.field("prospectId"), id)).first();
+    const existing = await ctx.db.query("prospects").withIndex("by_prospectId", q => q.eq("prospectId", id)).first();
     if (existing) {
       await ctx.db.delete(existing._id);
     }
@@ -62,7 +62,7 @@ export const remove = mutation({
 export const update = mutation({
   args: { id: v.string(), data: v.any() },
   handler: async (ctx, { id, data }) => {
-    const existing = await ctx.db.query("prospects").filter(q => q.eq(q.field("prospectId"), id)).first();
+    const existing = await ctx.db.query("prospects").withIndex("by_prospectId", q => q.eq("prospectId", id)).first();
     if (existing) {
       await ctx.db.patch(existing._id, data);
     }

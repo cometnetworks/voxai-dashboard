@@ -47,26 +47,22 @@ export default function Prospects({ prospects, setProspects, navigateTo }) {
   );
 
   filtered = [...filtered].sort((a, b) => {
-    if (sortBy === 'recent') return (b.isNewImport ? 1 : 0) - (a.isNewImport ? 1 : 0);
     let cmp = 0;
     
-    // Helper para limpiar strings y prepararlos para sort alfabético exacto
-    const cleanStr = (str) => (str || '').trim().toLowerCase();
+    // Helper para strings
+    const cleanStr = (str) => String(str || '').trim().toLowerCase();
 
-    if (sortBy === 'score') {
+    if (sortBy === 'recent') {
+      cmp = (b.isNewImport ? 1 : 0) - (a.isNewImport ? 1 : 0);
+      if (cmp === 0) cmp = (b.score || 0) - (a.score || 0); // Desempate
+    } else if (sortBy === 'score') {
       cmp = (a.score || 0) - (b.score || 0);
     } else if (sortBy === 'company') {
-      const ca = cleanStr(a.company);
-      const cb = cleanStr(b.company);
-      cmp = ca < cb ? -1 : (ca > cb ? 1 : 0);
+      cmp = cleanStr(a.company).localeCompare(cleanStr(b.company), 'es', { sensitivity: 'base' });
     } else if (sortBy === 'decisionMaker') {
-      const da = cleanStr(a.decisionMaker);
-      const db = cleanStr(b.decisionMaker);
-      cmp = da < db ? -1 : (da > db ? 1 : 0);
+      cmp = cleanStr(a.decisionMaker).localeCompare(cleanStr(b.decisionMaker), 'es', { sensitivity: 'base' });
     } else if (sortBy === 'status') {
-      const sa = cleanStr(a.status);
-      const sb = cleanStr(b.status);
-      cmp = sa < sb ? -1 : (sa > sb ? 1 : 0);
+      cmp = cleanStr(a.status).localeCompare(cleanStr(b.status), 'es', { sensitivity: 'base' });
     }
     return sortDir === 'asc' ? cmp : -cmp;
   });
@@ -76,7 +72,6 @@ export default function Prospects({ prospects, setProspects, navigateTo }) {
       const loading = toast.loading('Eliminando...');
       try {
         await removeProspect({ id });
-        setProspects(prev => prev.filter(p => p.id !== id));
         toast.success('Prospecto eliminado', { id: loading });
       } catch (e) {
         toast.error('Error al eliminar', { id: loading });
@@ -90,7 +85,6 @@ export default function Prospects({ prospects, setProspects, navigateTo }) {
     try {
       const { id, _id, _creationTime, prospectId, ...data } = editForm;
       await updateProspect({ id: editingId, data });
-      setProspects(prev => prev.map(p => p.id === editingId ? { ...editForm } : p));
       setEditingId(null);
       toast.success('Prospecto actualizado', { id: loading });
     } catch (e) {
