@@ -8,8 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy:cloud": "npm run build && npx wrangler pages deploy dist --project-name voxai-dashboard",
-    "deploy:all": "npm run build && npx wrangler pages deploy dist --project-name voxai-dashboard && git push origin main"
+    "deploy:cloud": "npx convex deploy --yes && VITE_CONVEX_URL=https://kindred-duck-693.convex.cloud npm run build && npx wrangler pages deploy dist --project-name voxai-dashboard",
+    "deploy:all": "npx convex deploy --yes && VITE_CONVEX_URL=https://kindred-duck-693.convex.cloud npm run build && npx wrangler pages deploy dist --project-name voxai-dashboard && git push origin main"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",

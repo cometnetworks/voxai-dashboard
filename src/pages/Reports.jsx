@@ -52,6 +52,15 @@ export default function Reports({ prospects, setProspects, reportsHistory, setRe
         }
       });
 
+      const deriveOutreachStatus = (p) => {
+        if (p.emailSent || ['sent','delivered','opened','replied'].includes(p.outreachStatus)) return p.outreachStatus;
+        if (p.doNotSend) return 'do_not_send';
+        if (p.bounced) return 'bounced';
+        if (p.email && p.draftEmail) return 'ready_to_send';
+        if (p.email) return 'enriched';
+        return 'extracted';
+      };
+
       let addedCount = 0;
       let updatedCount = 0;
       // Mark all existing prospects as NOT new
@@ -59,11 +68,13 @@ export default function Reports({ prospects, setProspects, reportsHistory, setRe
 
       uniqueIncoming.forEach(newP => {
         const normName = normalizeCompany(newP.company);
-        
+
         // If there's no valid normalized company name, just add it as a new prospect
         if (!normName) {
           const uniqueId = `p_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          updatedProspects.unshift({ ...newP, id: uniqueId, isNewImport: true });
+          const prospect = { ...newP, id: uniqueId, isNewImport: true };
+          prospect.outreachStatus = deriveOutreachStatus(prospect);
+          updatedProspects.unshift(prospect);
           addedCount++;
           return;
         }
@@ -100,13 +111,16 @@ export default function Reports({ prospects, setProspects, reportsHistory, setRe
           });
 
           // Move to top and replace
+          merged.outreachStatus = deriveOutreachStatus(merged);
           updatedProspects.splice(existingIndex, 1);
-          updatedProspects.unshift(merged); 
-          updatedCount++; // It could be that there were no actual overrides, but we still consider it "updated" or verified by the recent report so we move it to top
+          updatedProspects.unshift(merged);
+          updatedCount++;
         } else {
           // Add as new
           const uniqueId = `p_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          updatedProspects.unshift({ ...newP, id: uniqueId, isNewImport: true });
+          const prospect = { ...newP, id: uniqueId, isNewImport: true };
+          prospect.outreachStatus = deriveOutreachStatus(prospect);
+          updatedProspects.unshift(prospect);
           addedCount++;
         }
       });
