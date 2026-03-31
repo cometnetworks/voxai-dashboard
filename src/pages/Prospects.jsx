@@ -4,13 +4,6 @@ import toast from 'react-hot-toast';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 
-// Normaliza string: quita acentos, minúsculas, quita sufijos corporativos
-const normCompany = (s = '') =>
-  s.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-   .toLowerCase()
-   .replace(/\b(s\.?a\.?\s?de\s?c\.?v\.?|s\.?a\.?b\.?\s?de\s?c\.?v\.?|s\s?de\s?r\.?l\.?|s\.?a\.?|inc\.?|llc\.?|ltd\.?|corp\.?|s\.?c\.?)\b/gi, '')
-   .replace(/[^a-z0-9]/g, '')
-   .trim();
 
 const exportToCSV = (data) => {
   const headers = ['Compañía', 'Industria', 'Decisor', 'Cargo', 'Email', 'Score', 'Prioridad', 'Status'];
@@ -80,37 +73,28 @@ export default function Prospects({ prospects, setProspects, navigateTo }) {
   };
 
   // ── Limpiar duplicados ────────────────────────────────────────────────────────
+  // Solo borra cuando el MISMO email aparece más de una vez
   const handleDedup = async () => {
-    const groups = new Map();
-    for (const p of prospects) {
-      const key = normCompany(p.company);
-      if (!key) continue;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(p);
-    }
-
+    const emailSeen = new Map(); // email → first prospect id
     const toDelete = [];
-    for (const group of groups.values()) {
-      if (group.length <= 1) continue;
-      // Keep the one with the most non-null fields (most complete)
-      const scored = group.map(p => ({
-        p,
-        score: Object.values(p).filter(v => v !== null && v !== undefined && v !== '').length,
-      }));
-      scored.sort((a, b) => b.score - a.score);
-      // Delete all except the best
-      toDelete.push(...scored.slice(1).map(x => x.p.id));
+
+    for (const p of prospects) {
+      const key = (p.email || '').toLowerCase().trim();
+      if (!key) continue;
+      if (emailSeen.has(key)) {
+        toDelete.push(p.id); // duplicate email — delete this one
+      } else {
+        emailSeen.set(key, p.id);
+      }
     }
 
     if (!toDelete.length) { toast.success('No se encontraron duplicados'); return; }
 
-    const toastId = toast.loading(`Eliminando ${toDelete.length} duplicados...`);
+    const toastId = toast.loading(`Eliminando ${toDelete.length} duplicado${toDelete.length !== 1 ? 's' : ''}...`);
     try {
-      // Optimistic update
       setProspects(prev => prev.filter(p => !toDelete.includes(p.id)));
-      // Delete from Convex
       await Promise.all(toDelete.map(id => removeProspect({ id })));
-      toast.success(`${toDelete.length} duplicados eliminados`, { id: toastId });
+      toast.success(`${toDelete.length} duplicado${toDelete.length !== 1 ? 's' : ''} eliminado${toDelete.length !== 1 ? 's' : ''}`, { id: toastId });
     } catch (e) {
       toast.error('Error al limpiar duplicados', { id: toastId });
     }
@@ -139,15 +123,17 @@ export default function Prospects({ prospects, setProspects, navigateTo }) {
       : <ChevronDown size={13} className="text-primary-container ml-1 inline-block" />;
   };
 
-  // Count duplicates for badge
+  // Count duplicates — only same email counts as duplicate
   const dupCount = (() => {
-    const seen = new Map();
+    const seen = new Set();
+    let count = 0;
     for (const p of prospects) {
-      const k = normCompany(p.company);
+      const k = (p.email || '').toLowerCase().trim();
       if (!k) continue;
-      seen.set(k, (seen.get(k) || 0) + 1);
+      if (seen.has(k)) count++;
+      else seen.add(k);
     }
-    return [...seen.values()].filter(c => c > 1).reduce((acc, c) => acc + c - 1, 0);
+    return count;
   })();
 
   return (
