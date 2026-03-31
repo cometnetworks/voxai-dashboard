@@ -39,12 +39,8 @@ export function useData() {
 
     migrated.current = true;
 
-    if (prospectsEmpty) {
-      const saved = localStorage.getItem('vox_prospects');
-      const data  = saved ? JSON.parse(saved) : defaultProspects;
-      upsertProspects({ prospects: data });
-      // Keep localStorage as backup until user confirms migration is working
-    }
+    // Prospects are seeded from the validated CSV via seed-prospects.mjs
+    // Do NOT auto-seed from localStorage or mockData to prevent duplicates
 
     if (meetingsEmpty) {
       const saved = localStorage.getItem('vox_meetings');

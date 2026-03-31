@@ -69,6 +69,17 @@ export const update = mutation({
   },
 });
 
+/** Delete ALL prospects — used by seed script. */
+export const clearAll = mutation({
+  handler: async (ctx) => {
+    const docs = await ctx.db.query("prospects").collect();
+    for (const doc of docs) {
+      await ctx.db.delete(doc._id);
+    }
+    return docs.length;
+  },
+});
+
 /** Check whether any prospects have been seeded yet (used for auto-migration). */
 export const isEmpty = query({
   handler: async (ctx) => {
